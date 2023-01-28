@@ -10,7 +10,6 @@ func Subscribe(topic string, consumerGroup string, handleCallback func(*kafka.Me
 	bootstrapServers := os.Getenv("KAFKA_BOOTSTRAP_SERVERS")
 	ccloudAPIKey := os.Getenv("CONFLUENT_CLOUD_API_KEY")
 	ccloudAPISecret := os.Getenv("CONFLUENT_CLOUD_API_SECRET")
-
 	consumer, err := kafka.NewConsumer(&kafka.ConfigMap{
 		"bootstrap.servers":             bootstrapServers,
 		"sasl.username":                 ccloudAPIKey,
