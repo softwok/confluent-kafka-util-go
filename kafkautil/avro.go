@@ -37,7 +37,7 @@ func NewValueAvroSpecificSerializer() *avro.SpecificSerializer {
 }
 
 func Serialize(s *avro.SpecificSerializer, topic string, msg interface{}, key string, schemaName string) kafka.Message {
-	payload, err := s.Serialize(topic, &msg)
+	payload, err := s.Serialize(topic, msg)
 	if err != nil {
 		fmt.Printf("Failed to serialize payload: %s\n", err)
 		os.Exit(1)
