@@ -8,6 +8,28 @@ import (
 	"syscall"
 )
 
+func NewConsumer(consumerGroup string) *kafka.Consumer {
+	bootstrapServers := os.Getenv("KAFKA_BOOTSTRAP_SERVERS")
+	ccloudAPIKey := os.Getenv("CONFLUENT_CLOUD_API_KEY")
+	ccloudAPISecret := os.Getenv("CONFLUENT_CLOUD_API_SECRET")
+	consumer, err := kafka.NewConsumer(&kafka.ConfigMap{
+		"bootstrap.servers":             bootstrapServers,
+		"sasl.username":                 ccloudAPIKey,
+		"sasl.password":                 ccloudAPISecret,
+		"group.id":                      consumerGroup,
+		"partition.assignment.strategy": "cooperative-sticky",
+		"sasl.mechanisms":               "PLAIN",
+		"security.protocol":             "SASL_SSL",
+		"broker.address.family":         "v4",
+		"auto.offset.reset":             "earliest"})
+	if err != nil {
+		fmt.Printf("NewConsumer failed to create consumer with error=%s\n", err)
+		os.Exit(1)
+	}
+	fmt.Printf("NewConsumer created consumer=%v\n", consumer)
+	return consumer
+}
+
 func Consume(c *kafka.Consumer, handleCallback func(*kafka.Message)) {
 	sigchan := make(chan os.Signal, 1)
 	signal.Notify(sigchan, syscall.SIGINT, syscall.SIGTERM)
@@ -40,4 +62,16 @@ func Consume(c *kafka.Consumer, handleCallback func(*kafka.Message)) {
 			}
 		}
 	}
+}
+
+func Subscribe(topic string, consumerGroup string, handleCallback func(*kafka.Message)) {
+	consumer := NewConsumer(consumerGroup)
+	err := consumer.Subscribe(topic, RebalanceCallback)
+	if err != nil {
+		fmt.Printf("Subscribe failed to subscribe with error=%s\n", err)
+		os.Exit(1)
+	}
+	Consume(consumer, handleCallback)
+	fmt.Println("Subscribe closing consumer")
+	_ = consumer.Close()
 }

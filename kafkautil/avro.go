@@ -8,6 +8,7 @@ import (
 	"github.com/actgardner/gogen-avro/v10/resolver"
 	"github.com/actgardner/gogen-avro/v10/schema"
 	"github.com/actgardner/gogen-avro/v10/vm"
+	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
 	"github.com/confluentinc/confluent-kafka-go/v2/schemaregistry"
 	"github.com/confluentinc/confluent-kafka-go/v2/schemaregistry/serde"
 	"github.com/confluentinc/confluent-kafka-go/v2/schemaregistry/serde/avro"
@@ -33,6 +34,19 @@ func NewValueAvroSpecificSerializer() *avro.SpecificSerializer {
 		os.Exit(1)
 	}
 	return ser
+}
+
+func Serialize(s *avro.SpecificSerializer, topic string, msg interface{}, key string, schemaName string) kafka.Message {
+	payload, err := s.Serialize(topic, &msg)
+	if err != nil {
+		fmt.Printf("Failed to serialize payload: %s\n", err)
+		os.Exit(1)
+	}
+	return kafka.Message{
+		Key:            []byte(key),
+		TopicPartition: kafka.TopicPartition{Topic: &topic, Partition: kafka.PartitionAny},
+		Value:          payload,
+		Headers:        []kafka.Header{{Key: "schema-name", Value: []byte(schemaName)}}}
 }
 
 func DeserializeInto(s *avro.SpecificDeserializer, topic string, payload []byte, msg interface{}) error {
