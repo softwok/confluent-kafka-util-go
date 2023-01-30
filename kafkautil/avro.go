@@ -75,6 +75,9 @@ func DeserializeInto(s *avro.SpecificDeserializer, topic string, payload []byte,
 				return err
 			}
 			writer, err := toAvroType(s, schemaregistry.SchemaInfo{Schema: metadata.Schema})
+			if err != nil {
+				return err
+			}
 			deser, err := compiler.Compile(writer, reader)
 			if err != nil {
 				return err
@@ -84,6 +87,15 @@ func DeserializeInto(s *avro.SpecificDeserializer, topic string, payload []byte,
 		}
 	}
 	return nil
+}
+
+func SchemaNameMatches(message *kafka.Message, schemaName string) bool {
+	for _, header := range message.Headers {
+		if header.Key == "schema-name" && string(header.Value) == schemaName {
+			return true
+		}
+	}
+	return false
 }
 
 func newSchemaRegistryClient() schemaregistry.Client {
