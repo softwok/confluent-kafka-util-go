@@ -2,6 +2,7 @@ package kafkautil
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"github.com/actgardner/gogen-avro/v10/compiler"
 	"github.com/actgardner/gogen-avro/v10/parser"
@@ -13,7 +14,6 @@ import (
 	"github.com/confluentinc/confluent-kafka-go/v2/schemaregistry/serde"
 	"github.com/confluentinc/confluent-kafka-go/v2/schemaregistry/serde/avro"
 	"os"
-	"strings"
 )
 
 func NewValueAvroSpecificDeserializer() *avro.SpecificDeserializer {
@@ -49,7 +49,7 @@ func Serialize(s *avro.SpecificSerializer, topic string, msg interface{}, key st
 		Headers:        []kafka.Header{{Key: "schema-name", Value: []byte(schemaName)}}}
 }
 
-func DeserializeInto(s *avro.SpecificDeserializer, topic string, payload []byte, msg interface{}) error {
+func DeserializeInto(s *avro.SpecificDeserializer, topic string, payload []byte, msg interface{}, schemaName string) error {
 	if payload == nil {
 		return nil
 	}
@@ -69,7 +69,7 @@ func DeserializeInto(s *avro.SpecificDeserializer, topic string, payload []byte,
 		return err
 	}
 	for _, reference := range info.References {
-		if strings.HasSuffix(reference.Name, reader.Name()) {
+		if reference.Name == schemaName {
 			metadata, err := s.Client.GetLatestSchemaMetadata(reference.Subject)
 			if err != nil {
 				return err
@@ -86,7 +86,7 @@ func DeserializeInto(s *avro.SpecificDeserializer, topic string, payload []byte,
 			return vm.Eval(r, deser, avroMsg)
 		}
 	}
-	return nil
+	return errors.New("schema not found")
 }
 
 func SchemaNameMatches(message *kafka.Message, schemaName string) bool {
